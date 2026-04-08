@@ -121,6 +121,7 @@ def get_doctor_appointments(doctor_id):
         query = """
             SELECT
                 A.AppointmentID,
+                A.PatientID,
                 A.ApptDate,
                 A.ApptTime,
                 A.Status,
