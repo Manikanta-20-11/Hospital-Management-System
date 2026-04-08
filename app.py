@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import mysql.connector
 from mysql.connector import Error
+import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -213,6 +214,49 @@ def book_appointment():
         return jsonify({
             'message': 'Appointment booked successfully',
             'AppointmentID': cursor.lastrowid
+        }), 201
+    except Error as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# PHASE 5 — Clinical Workflow (Medical Records)
+# ─────────────────────────────────────────────
+
+@app.route('/api/medical-records', methods=['POST'])
+def create_medical_record():
+    data = request.get_json()
+    required = ['PatientID', 'DoctorID', 'Diagnosis', 'Prescription']
+    if not data or not all(k in data for k in required):
+        return jsonify({'error': 'Missing required fields: PatientID, DoctorID, Diagnosis, Prescription'}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    try:
+        today = datetime.date.today()
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO MEDICAL_RECORD (DateRecorded, Diagnosis, Prescription, PatientID, DoctorID)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (
+            today,
+            data['Diagnosis'],
+            data['Prescription'],
+            data['PatientID'],
+            data['DoctorID']
+        ))
+        conn.commit()
+        return jsonify({
+            'message': 'Medical record saved successfully',
+            'RecordID': cursor.lastrowid,
+            'DateRecorded': str(today)
         }), 201
     except Error as e:
         conn.rollback()

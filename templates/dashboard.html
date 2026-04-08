@@ -191,10 +191,134 @@
       font-size: 14px;
     }
 
+    /* ── Consult Button ── */
+    .btn-consult {
+      padding: 6px 14px;
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: #fff;
+      border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 2px 8px rgba(124,58,237,.35);
+    }
+    .btn-consult:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(124,58,237,.45);
+    }
+    .btn-consult:disabled {
+      opacity: .5; cursor: default; transform: none;
+    }
+
+    /* ── Modal Overlay ── */
+    #consult-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,.55);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+    #consult-overlay.open { display: flex; }
+
+    #consult-modal {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.25);
+      width: 100%;
+      max-width: 560px;
+      padding: 36px 40px;
+      position: relative;
+      animation: modalIn .25s ease both;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-20px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0)  scale(1);     }
+    }
+
+    #modal-close {
+      position: absolute; top: 16px; right: 20px;
+      background: none; border: none;
+      font-size: 22px; color: var(--muted);
+      cursor: pointer; line-height: 1;
+      transition: color .15s;
+    }
+    #modal-close:hover { color: var(--danger); }
+
+    .modal-header { margin-bottom: 28px; }
+    .modal-header h3 {
+      font-size: 20px; font-weight: 700; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .modal-patient-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 8px;
+      background: #f0f7ff;
+      border: 1px solid #bfdbfe;
+      color: var(--primary);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 13px; font-weight: 600;
+    }
+
+    .modal-group { margin-bottom: 20px; }
+    .modal-group label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .modal-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background: #f8fafc;
+      resize: vertical;
+      min-height: 100px;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    .modal-group textarea:focus {
+      border-color: #7c3aed;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(124,58,237,.12);
+    }
+
+    .btn-save {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(124,58,237,.35);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-save:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(124,58,237,.45);
+    }
+    .btn-save:disabled { opacity: .6; cursor: default; transform: none; }
+
+    #modal-error {
+      display: none;
+      background: #fef2f2; border: 1px solid #fecaca;
+      color: #991b1b; border-radius: 8px;
+      padding: 9px 13px; font-size: 13px;
+      margin-top: 12px; text-align: center;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       main { padding: 20px 16px; }
       nav  { padding: 0 16px; }
+      #consult-modal { margin: 16px; padding: 24px 20px; }
     }
   </style>
 </head>
@@ -254,6 +378,35 @@
       </div>
     </div>
   </main>
+
+  <!-- ── Consult Modal ── -->
+  <div id="consult-overlay">
+    <div id="consult-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button id="modal-close" aria-label="Close modal">✕</button>
+
+      <div class="modal-header">
+        <h3 id="modal-title">📝 Consultation Notes</h3>
+        <div class="modal-patient-chip">
+          <span>👤</span>
+          <span id="modal-patient-name">—</span>
+        </div>
+      </div>
+
+      <form id="consult-form" novalidate>
+        <div class="modal-group">
+          <label for="diagnosis-input">Diagnosis</label>
+          <textarea id="diagnosis-input" placeholder="Describe the diagnosis…" required></textarea>
+        </div>
+        <div class="modal-group">
+          <label for="prescription-input">Prescription &amp; Notes</label>
+          <textarea id="prescription-input" placeholder="List medications, dosage, and any additional notes…" required></textarea>
+        </div>
+        <button type="submit" class="btn-save" id="save-btn">💾 Save Medical Record</button>
+        <div id="modal-error"></div>
+      </form>
+    </div>
+  </div>
+    </div>
 
   <script>
     // ── Security Check ──
@@ -320,15 +473,24 @@
           data.filter(a => a.Status === 'Completed').length;
 
         // Build table
-        const rows = data.map(a => `
-          <tr>
-            <td>${a.AppointmentID}</td>
-            <td>${a.ApptDate}</td>
-            <td>${a.ApptTime}</td>
-            <td>${a.PatientFirstName} ${a.PatientLastName}</td>
-            <td>${statusBadge(a.Status)}</td>
-          </tr>
-        `).join('');
+        const rows = data.map(a => {
+          const isCompleted = a.Status === 'Completed' || a.Status === 'Cancelled';
+          const actionBtn = isCompleted
+            ? `<span style="font-size:12px;color:var(--muted);">—</span>`
+            : `<button
+                class="btn-consult"
+                onclick="openConsultModal(${a.AppointmentID}, '${a.PatientFirstName} ${a.PatientLastName}', ${JSON.stringify(a.PatientID ?? 'null')})"
+              >🩺 Consult</button>`;
+          return `
+            <tr id="appt-row-${a.AppointmentID}">
+              <td>${a.AppointmentID}</td>
+              <td>${a.ApptDate}</td>
+              <td>${a.ApptTime}</td>
+              <td>${a.PatientFirstName} ${a.PatientLastName}</td>
+              <td id="status-${a.AppointmentID}">${statusBadge(a.Status)}</td>
+              <td>${actionBtn}</td>
+            </tr>`;
+        }).join('');
 
         container.innerHTML = `
           <table>
@@ -339,6 +501,7 @@
                 <th>Time</th>
                 <th>Patient Name</th>
                 <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -350,6 +513,102 @@
     }
 
     loadAppointments();
+
+    // ── Modal State ──
+    let activeAppointmentID = null;
+    let activePatientID     = null;
+
+    function openConsultModal(appointmentId, patientName, patientId) {
+      activeAppointmentID = appointmentId;
+      activePatientID     = patientId;
+      document.getElementById('modal-patient-name').textContent = patientName;
+      document.getElementById('diagnosis-input').value    = '';
+      document.getElementById('prescription-input').value = '';
+      document.getElementById('modal-error').style.display = 'none';
+      document.getElementById('consult-overlay').classList.add('open');
+      document.getElementById('diagnosis-input').focus();
+    }
+
+    function closeConsultModal() {
+      document.getElementById('consult-overlay').classList.remove('open');
+      activeAppointmentID = null;
+      activePatientID     = null;
+    }
+
+    // Close on overlay click or ✕ button
+    document.getElementById('modal-close').addEventListener('click', closeConsultModal);
+    document.getElementById('consult-overlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('consult-overlay')) closeConsultModal();
+    });
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeConsultModal();
+    });
+
+    // ── Save Medical Record ──
+    document.getElementById('consult-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const diagnosis    = document.getElementById('diagnosis-input').value.trim();
+      const prescription = document.getElementById('prescription-input').value.trim();
+      const errorDiv     = document.getElementById('modal-error');
+      const saveBtn      = document.getElementById('save-btn');
+
+      errorDiv.style.display = 'none';
+
+      if (!diagnosis || !prescription) {
+        errorDiv.textContent   = '⚠️ Please fill in both Diagnosis and Prescription fields.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      saveBtn.disabled    = true;
+      saveBtn.textContent = 'Saving…';
+
+      try {
+        const res  = await fetch('/api/medical-records', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            PatientID:    activePatientID,
+            DoctorID:     user.DoctorID,
+            Diagnosis:    diagnosis,
+            Prescription: prescription
+          })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          alert(`✅ Medical Record Saved! (Record ID: ${data.RecordID}, Date: ${data.DateRecorded})`);
+
+          // Update the row's status badge in the UI to 'Completed'
+          const statusCell = document.getElementById(`status-${activeAppointmentID}`);
+          if (statusCell) statusCell.innerHTML = statusBadge('Completed');
+
+          // Disable the Consult button for this row
+          const row = document.getElementById(`appt-row-${activeAppointmentID}`);
+          if (row) {
+            const actionCell = row.querySelector('td:last-child');
+            if (actionCell) actionCell.innerHTML = `<span style="font-size:12px;color:var(--muted);">Done ✓</span>`;
+          }
+
+          // Update completed stat counter
+          const compEl = document.getElementById('stat-completed');
+          compEl.textContent = parseInt(compEl.textContent || '0') + 1;
+
+          closeConsultModal();
+        } else {
+          errorDiv.textContent   = '⚠️ ' + (data.error || 'Failed to save record.');
+          errorDiv.style.display = 'block';
+        }
+      } catch (err) {
+        errorDiv.textContent   = '⚠️ Network error: ' + err.message;
+        errorDiv.style.display = 'block';
+        console.error(err);
+      } finally {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = '💾 Save Medical Record';
+      }
+    });
   </script>
 </body>
 </html>
