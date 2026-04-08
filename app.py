@@ -268,6 +268,98 @@ def create_medical_record():
 
 
 # ─────────────────────────────────────────────
+# PHASE 6 — Admissions & Ward
+# ─────────────────────────────────────────────
+
+@app.route('/api/active-admissions', methods=['GET'])
+def get_active_admissions():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+    try:
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT
+                A.AdmissionID,
+                P.PatientID,
+                P.FirstName,
+                P.LastName,
+                R.RoomNumber,
+                A.AdmissionDate
+            FROM ADMISSION A
+            JOIN PATIENT P ON A.PatientID = P.PatientID
+            JOIN ROOM R ON A.RoomID = R.RoomID
+            WHERE A.DischargeDate IS NULL
+        """
+        cursor.execute(query)
+        admissions = cursor.fetchall()
+
+        for a in admissions:
+            if a.get('AdmissionDate'):
+                a['AdmissionDate'] = str(a['AdmissionDate'])
+
+        return jsonify(admissions), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/discharge', methods=['POST'])
+def discharge_patient():
+    data = request.get_json()
+    required = ['AdmissionID', 'PatientID']
+    if not data or not all(k in data for k in required):
+        return jsonify({'error': 'Missing required fields: AdmissionID, PatientID'}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        today = datetime.date.today()
+
+        # Get admission and room info to calculate charge
+        cursor.execute("""
+            SELECT A.AdmissionDate, R.DailyRate
+            FROM ADMISSION A
+            JOIN ROOM R ON A.RoomID = R.RoomID
+            WHERE A.AdmissionID = %s
+        """, (data['AdmissionID'],))
+        adm_info = cursor.fetchone()
+
+        if not adm_info:
+            return jsonify({'error': 'Admission record not found'}), 404
+
+        days = (today - adm_info['AdmissionDate']).days
+        charge_days = max(1, days)
+        total_amount = float(charge_days * adm_info['DailyRate'])
+
+        # Step A: Update DischargeDate
+        cursor.execute("""
+            UPDATE ADMISSION
+            SET DischargeDate = %s
+            WHERE AdmissionID = %s
+        """, (today, data['AdmissionID']))
+
+        # Step B/C: Insert Bill
+        cursor.execute("""
+            INSERT INTO BILLING (TotalAmount, PaymentStatus, BillingDate, PatientID)
+            VALUES (%s, 'Pending', %s, %s)
+        """, (total_amount, today, data['PatientID']))
+
+        conn.commit()
+        return jsonify({'message': 'Patient Discharged & Bill Generated!'}), 200
+    except Error as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ─────────────────────────────────────────────
 # Entry Point
 # ─────────────────────────────────────────────
 

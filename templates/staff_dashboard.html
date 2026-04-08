@@ -250,6 +250,19 @@
       </div>
     </div>
 
+    <!-- Bottom: Inpatient Ward Table -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <div class="card-header">
+        <h2>🛏️ Active Inpatient Ward</h2>
+        <small id="ward-count">Loading…</small>
+      </div>
+      <div class="table-wrap">
+        <div id="ward-container">
+          <div class="empty-state"><div class="icon">⏳</div><p>Loading ward data…</p></div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <script>
@@ -389,9 +402,74 @@
       el.style.display = 'block';
     }
 
+    // ── Load Active Admissions ──
+    async function loadAdmissions() {
+      const container = document.getElementById('ward-container');
+      try {
+        const res  = await fetch('/api/active-admissions');
+        const data = await res.json();
+
+        document.getElementById('ward-count').textContent = `${data.length} inpatients`;
+
+        if (!Array.isArray(data) || data.length === 0) {
+          container.innerHTML = `<div class="empty-state"><div class="icon">🛏️</div><p>No active admissions found.</p></div>`;
+          return;
+        }
+
+        const rows = data.map(a => `
+          <tr>
+            <td>${a.AdmissionID}</td>
+            <td><span class="badge badge-teal">#${a.PatientID}</span> ${a.FirstName} ${a.LastName}</td>
+            <td>${a.RoomNumber}</td>
+            <td>${a.AdmissionDate}</td>
+            <td><button class="btn-primary" style="padding: 6px 12px; font-size: 12px; margin:0;" onclick="dischargePatient(${a.AdmissionID}, ${a.PatientID})">Discharge &amp; Bill</button></td>
+          </tr>
+        `).join('');
+
+        container.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Adm ID</th>
+                <th>Patient</th>
+                <th>Room</th>
+                <th>Admission Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+      } catch (err) {
+        container.innerHTML = `<div class="empty-state"><p>⚠️ Error: ${err.message}</p></div>`;
+      }
+    }
+
+    async function dischargePatient(admissionId, patientId) {
+      if (!confirm("Are you sure you want to discharge this patient?")) return;
+      
+      try {
+        const res = await fetch('/api/discharge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ AdmissionID: parseInt(admissionId), PatientID: parseInt(patientId) })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          alert('Patient Discharged & Bill Generated!');
+          loadAdmissions(); // re-fetch the data to update active ward list
+        } else {
+          alert("Error: " + (data.error || "Failed to discharge"));
+        }
+      } catch (err) {
+        alert("Network Error: " + err.message);
+      }
+    }
+
     // ── Init ──
     loadPatients();
     loadDoctors();
+    loadAdmissions();
   </script>
 </body>
 </html>
