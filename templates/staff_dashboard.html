@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HMS — Staff Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:    #0f766e;  /* teal theme for staff */
+      --primary-lt: #ccfbf1;
+      --accent:     #2dd4bf;
+      --bg:         #f0fdfa;
+      --card:       #ffffff;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --danger:     #ef4444;
+      --radius:     12px;
+      --shadow:     0 4px 20px rgba(0,0,0,.08);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      background: linear-gradient(135deg, #042f2e 0%, #134e4a 100%);
+      padding: 0 32px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 12px;
+      color: #fff; font-size: 18px; font-weight: 700;
+    }
+    .nav-brand span { font-size: 24px; }
+    .nav-role-badge {
+      padding: 4px 12px;
+      background: rgba(45,212,191,.2);
+      border: 1px solid rgba(45,212,191,.4);
+      color: #2dd4bf;
+      border-radius: 999px; font-size: 12px; font-weight: 600;
+    }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    #nav-user-info { color: #94a3b8; font-size: 14px; }
+    #nav-user-info strong { color: #e2e8f0; }
+    .btn-logout {
+      padding: 8px 18px;
+      background: rgba(239,68,68,.15);
+      border: 1px solid rgba(239,68,68,.4);
+      color: #fca5a5; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-logout:hover { background: rgba(239,68,68,.3); color: #fff; }
+
+    /* ── Layout ── */
+    main {
+      flex: 1;
+      padding: 36px 40px;
+      max-width: 1300px; margin: 0 auto; width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-header h2 {
+      font-size: 17px; font-weight: 700; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-header small { color: var(--muted); font-size: 13px; }
+    .card-body { padding: 24px; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: #f8fafc;
+      padding: 11px 18px;
+      text-align: left; font-size: 11px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .6px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr:hover { background: #f8fafc; }
+    tbody td {
+      padding: 13px 18px; font-size: 14px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .empty-state {
+      padding: 48px 24px; text-align: center; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 42px; margin-bottom: 10px; }
+
+    /* ── Booking Form ── */
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--text); margin-bottom: 7px;
+    }
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      color: var(--text);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    input:focus, select:focus {
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(15,118,110,.12);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--primary), #0d9488);
+      color: #fff; border: none; border-radius: 9px;
+      font-size: 14px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer; margin-top: 4px;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 4px 14px rgba(15,118,110,.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(15,118,110,.4);
+    }
+    .btn-primary:active  { transform: translateY(0); }
+    .btn-primary:disabled{ opacity: .6; cursor: default; transform: none; }
+
+    #book-error {
+      display: none;
+      background: #fef2f2; border: 1px solid #fecaca;
+      color: #991b1b; border-radius: 8px;
+      padding: 9px 13px; font-size: 13px; margin-top: 12px; text-align:center;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-block; padding: 3px 9px;
+      border-radius: 999px; font-size: 12px; font-weight: 600;
+    }
+    .badge-teal { background: #ccfbf1; color: #115e59; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; padding: 20px 16px; }
+      nav  { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-brand">
+      <span>🏥</span> MediCore HMS
+      <span class="nav-role-badge">Reception</span>
+    </div>
+    <div class="nav-right">
+      <div id="nav-user-info">Logged in as <strong id="nav-username">—</strong></div>
+      <button class="btn-logout" id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Grid -->
+  <main>
+
+    <!-- Left: Patients Table -->
+    <div class="card">
+      <div class="card-header">
+        <h2>👥 Registered Patients</h2>
+        <small id="patient-count">Loading…</small>
+      </div>
+      <div class="table-wrap">
+        <div id="patients-container">
+          <div class="empty-state"><div class="icon">⏳</div><p>Loading patients…</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Book Appointment Form -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📝 Book New Appointment</h2>
+      </div>
+      <div class="card-body">
+        <form id="booking-form" novalidate>
+
+          <div class="form-group">
+            <label for="patient-id">Patient ID</label>
+            <input type="text" id="patient-id" placeholder="e.g. 101" required/>
+          </div>
+
+          <div class="form-group">
+            <label for="doctor-select">Select Doctor</label>
+            <select id="doctor-select" required>
+              <option value="">— Loading doctors… —</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="appt-date">Appointment Date</label>
+            <input type="date" id="appt-date" required/>
+          </div>
+
+          <div class="form-group">
+            <label for="appt-time">Appointment Time</label>
+            <input type="time" id="appt-time" required/>
+          </div>
+
+          <button type="submit" class="btn-primary" id="book-btn">
+            📅 Book Appointment
+          </button>
+          <div id="book-error"></div>
+        </form>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // ── Security Check ──
+    const raw = localStorage.getItem('user');
+    if (!raw) { window.location.href = '/'; }
+
+    const user = JSON.parse(raw);
+    // A staff / receptionist must have a StaffID
+    if (!user.StaffID) {
+      // Maybe a doctor — redirect them to their dashboard
+      window.location.href = user.DoctorID ? '/dashboard' : '/';
+    }
+
+    // ── Nav ──
+    document.getElementById('nav-username').textContent = user.Username || 'Staff';
+
+    // ── Logout ──
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = '/';
+    });
+
+    // ── Set min date to today ──
+    document.getElementById('appt-date').min = new Date().toISOString().split('T')[0];
+
+    // ── Load Patients ──
+    async function loadPatients() {
+      const container = document.getElementById('patients-container');
+      try {
+        const res  = await fetch('/api/patients');
+        const data = await res.json();
+
+        document.getElementById('patient-count').textContent = `${data.length} patients`;
+
+        if (!Array.isArray(data) || data.length === 0) {
+          container.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No patients found.</p></div>`;
+          return;
+        }
+
+        const rows = data.map(p => `
+          <tr>
+            <td><span class="badge badge-teal">#${p.PatientID}</span></td>
+            <td>${p.FirstName} ${p.LastName}</td>
+            <td>${p.Phone || '—'}</td>
+          </tr>
+        `).join('');
+
+        container.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Patient ID</th>
+                <th>Name</th>
+                <th>Phone</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+      } catch (err) {
+        container.innerHTML = `<div class="empty-state"><p>⚠️ Error: ${err.message}</p></div>`;
+      }
+    }
+
+    // ── Load Doctors into Dropdown ──
+    async function loadDoctors() {
+      const sel = document.getElementById('doctor-select');
+      try {
+        const res  = await fetch('/api/doctors');
+        const data = await res.json();
+
+        sel.innerHTML = '<option value="">— Select a doctor —</option>';
+        data.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value       = d.DoctorID;
+          opt.textContent = `Dr. ${d.FirstName} ${d.LastName} — ${d.Specialization}`;
+          sel.appendChild(opt);
+        });
+      } catch (err) {
+        sel.innerHTML = '<option value="">⚠️ Failed to load doctors</option>';
+        console.error(err);
+      }
+    }
+
+    // ── Book Appointment ──
+    document.getElementById('booking-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorDiv = document.getElementById('book-error');
+      errorDiv.style.display = 'none';
+
+      const patientId = document.getElementById('patient-id').value.trim();
+      const doctorId  = document.getElementById('doctor-select').value;
+      const apptDate  = document.getElementById('appt-date').value;
+      const apptTime  = document.getElementById('appt-time').value;
+      const btn       = document.getElementById('book-btn');
+
+      if (!patientId || !doctorId || !apptDate || !apptTime) {
+        showBookError('Please fill in all fields.');
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = 'Booking…';
+
+      try {
+        const res  = await fetch('/api/appointments', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            PatientID: parseInt(patientId),
+            DoctorID:  parseInt(doctorId),
+            ApptDate:  apptDate,
+            ApptTime:  apptTime
+          })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          alert(`✅ Appointment Booked! (ID: ${data.AppointmentID})`);
+          document.getElementById('booking-form').reset();
+          // Re-set min date after reset
+          document.getElementById('appt-date').min = new Date().toISOString().split('T')[0];
+        } else {
+          showBookError(data.error || 'Failed to book appointment.');
+        }
+      } catch (err) {
+        showBookError('Network error: ' + err.message);
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '📅 Book Appointment';
+      }
+    });
+
+    function showBookError(msg) {
+      const el = document.getElementById('book-error');
+      el.textContent   = '⚠️ ' + msg;
+      el.style.display = 'block';
+    }
+
+    // ── Init ──
+    loadPatients();
+    loadDoctors();
+  </script>
+</body>
+</html>

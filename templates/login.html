@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HMS — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:    #1d6fa4;
+      --primary-dk: #155e8a;
+      --accent:     #38bdf8;
+      --bg:         #e8f4fc;
+      --card:       #ffffff;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #cbd5e1;
+      --danger:     #ef4444;
+      --radius:     14px;
+      --shadow:     0 8px 32px rgba(29,111,164,.15);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 50%, #f0f9ff 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: .35;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #93c5fd, #38bdf8);
+      top: -120px; left: -120px;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #bfdbfe, #7dd3fc);
+      bottom: -100px; right: -80px;
+    }
+
+    .container {
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,.7);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 48px 44px;
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+      z-index: 10;
+      animation: slideUp .5s ease both;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 14px rgba(29,111,164,.3);
+    }
+    .logo-text h1 { font-size: 20px; font-weight: 700; color: var(--text); }
+    .logo-text p  { font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+    h2 { font-size: 26px; font-weight: 700; color: var(--text); }
+    .subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; margin-bottom: 28px; }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+
+    .input-wrap { position: relative; }
+    .input-wrap .icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; color: var(--muted);
+      pointer-events: none;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%; padding: 12px 14px 12px 42px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      color: var(--text);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(29,111,164,.12);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--primary), #2a8bc8);
+      color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: transform .15s, box-shadow .15s, opacity .15s;
+      box-shadow: 0 4px 14px rgba(29,111,164,.35);
+    }
+    .btn:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(29,111,164,.4); }
+    .btn:active { transform: translateY(0);    box-shadow: 0 2px 8px  rgba(29,111,164,.3); }
+    .btn:disabled { opacity: .6; cursor: default; transform: none; }
+
+    #error-msg {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: var(--danger);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-top: 14px;
+      text-align: center;
+    }
+
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <div class="logo-icon">🏥</div>
+      <div class="logo-text">
+        <h1>MediCore HMS</h1>
+        <p>Hospital Management System</p>
+      </div>
+    </div>
+
+    <h2>Welcome back</h2>
+    <p class="subtitle">Sign in to your account to continue</p>
+
+    <form id="login-form" novalidate>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <span class="icon">👤</span>
+          <input type="text" id="username" name="username" placeholder="Enter your username" required autocomplete="username"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <span class="icon">🔒</span>
+          <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password"/>
+        </div>
+      </div>
+
+      <button type="submit" class="btn" id="login-btn">Sign In</button>
+      <div id="error-msg"></div>
+    </form>
+
+    <div class="divider"></div>
+    <p class="footer-note">🔒 Secured access — Authorised personnel only</p>
+  </div>
+
+  <script>
+    // If already logged in, redirect immediately
+    const existing = localStorage.getItem('user');
+    if (existing) {
+      const u = JSON.parse(existing);
+      window.location.href = u.Role === 'Receptionist' ? '/staff-dashboard' : '/dashboard';
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username  = document.getElementById('username').value.trim();
+      const password  = document.getElementById('password').value;
+      const btn       = document.getElementById('login-btn');
+      const errorDiv  = document.getElementById('error-msg');
+
+      errorDiv.style.display = 'none';
+
+      if (!username || !password) {
+        showError('Please enter both username and password.');
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        const res  = await fetch('/api/login', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          localStorage.setItem('user', JSON.stringify(data));
+          alert('Login Successful! Welcome, ' + data.Username + ' 👋');
+          // Role-based redirect
+          if (data.Role === 'Receptionist') {
+            window.location.href = '/staff-dashboard';
+          } else {
+            window.location.href = '/dashboard';
+          }
+        } else {
+          showError(data.error || 'Invalid credentials. Please try again.');
+        }
+      } catch (err) {
+        showError('Network error. Please check your connection.');
+        console.error(err);
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent    = '⚠️  ' + msg;
+      el.style.display  = 'block';
+    }
+  </script>
+</body>
+</html>
