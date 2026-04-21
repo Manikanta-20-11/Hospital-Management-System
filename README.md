@@ -31,3 +31,41 @@ The backbone of MediCare is a highly structured MySQL database designed to preve
 **1. Clone the repository**
 ```bash
 git clone
+
+```
+**2. Database Setup**
+
+Ensure you have MySQL Server installed and running locally.
+
+Note: The backend is configured to connect to MySQL on port 3006.
+
+Open MySQL Workbench and run the provided SQL scripts in the /database folder to create the schema, tables, and insert the initial data:
+```bash
+SQL
+SOURCE database/schema.sql;
+SOURCE database/insert_data.sql;
+```
+**3. Backend Setup**
+
+Ensure Python is installed on your machine.
+
+Install the required dependencies:
+
+```Bash
+pip install Flask mysql-connector-python
+```
+Update the database connection credentials inside app.py (username, password) if necessary.
+
+4. Run the Application
+
+```Bash
+python app.py
+```
+Open your web browser and navigate to http://127.0.0.1:5000 to access the MediCare system.
+
+👨‍🎓 Author
+B.T.V. Manikanta
+
+SRM University-AP
+
+B.Tech Computer Science and Engineering
