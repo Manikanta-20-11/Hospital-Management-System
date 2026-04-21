@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — HMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:    #0f172a;
+      --secondary:  #1e293b;
+      --accent:     #6366f1;
+      --bg:         #f8fafc;
+      --card:       #ffffff;
+      --text:       #0f172a;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --danger:     #ef4444;
+      --success:    #10b981;
+      --radius:     12px;
+      --shadow-sm:  0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.1);
+      --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.1);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar */
+    .navbar {
+      background: var(--primary);
+      color: white;
+      padding: 0 32px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .navbar-brand .icon {
+      font-size: 24px;
+    }
+    .navbar-brand h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .user-info {
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+    .user-info span {
+      color: white;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+    .btn-logout {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.8);
+      border-color: transparent;
+    }
+
+    /* Main Container */
+    .main-content {
+      padding: 40px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      flex-grow: 1;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+    .page-header h2 {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .page-header p {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    .kpi-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kpi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+    .kpi-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+    .kpi-icon.patients { background: #e0e7ff; color: #4f46e5; }
+    .kpi-icon.doctors { background: #dcfce7; color: #16a34a; }
+    .kpi-icon.revenue { background: #fef3c7; color: #d97706; }
+    
+    .kpi-details h3 {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .kpi-details .value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--secondary);
+      line-height: 1.1;
+    }
+
+    /* Tables Layout */
+    .tables-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    
+    @media (max-width: 1024px) {
+      .tables-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .section-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+    }
+    .section-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--secondary);
+    }
+
+    .table-container {
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    td {
+      padding: 16px 24px;
+      font-size: 14px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .empty-state {
+      padding: 48px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 500;
+      background: #f1f5f9;
+      color: var(--secondary);
+    }
+
+    /* Modals & Search Styling */
+    .search-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+    }
+    .btn-action {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-action:hover {
+      background: #4f46e5;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    .btn-action:active { transform: translateY(0); }
+
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,.6);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 500px;
+      padding: 32px;
+      position: relative;
+      animation: modalIn .25s ease both;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-20px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0)  scale(1);     }
+    }
+
+    .modal-close {
+      position: absolute; top: 16px; right: 20px;
+      background: none; border: none;
+      font-size: 24px; color: var(--muted);
+      cursor: pointer; line-height: 1;
+      padding: 4px;
+    }
+    .modal-close:hover { color: var(--danger); }
+
+    .modal-header h3 {
+      font-size: 20px; font-weight: 700; color: var(--secondary);
+      margin-bottom: 20px;
+    }
+
+    .modal-group { margin-bottom: 16px; }
+    .modal-group label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--secondary); margin-bottom: 6px;
+    }
+    .modal-group input, .modal-group select {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 14px;
+      outline: none; background: #f8fafc;
+      transition: border-color .2s;
+    }
+    .modal-group input:focus, .modal-group select:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    .modal-btn {
+      width: 100%; padding: 12px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 8px; font-weight: 600; font-size: 14px;
+      cursor: pointer; margin-top: 10px; transition: background .15s;
+    }
+    .modal-btn:hover { background: #4f46e5; }
+    .modal-error {
+      display: none; background: #fef2f2; border: 1px solid #fecaca;
+      color: var(--danger); border-radius: 8px; padding: 10px;
+      font-size: 13px; margin-top: 12px; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background security check -->
+  <script>
+    const userJson = localStorage.getItem('user');
+    if (!userJson) {
+      window.location.href = '/';
+    } else {
+      const user = JSON.parse(userJson);
+      if (user.Role !== 'Admin') {
+        window.location.href = '/';
+      }
+    }
+  </script>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="navbar-brand">
+      <div class="icon">🏥</div>
+      <h1>HMS Admin Master Control</h1>
+    </div>
+    <div class="navbar-actions">
+      <div class="user-info">Logged in as <span id="admin-name">Admin</span></div>
+      <button class="btn-logout" id="logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="page-header" style="display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h2>Hospital Overview</h2>
+        <p>Key performance indicators and directories.</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn-action" onclick="openModal('doctor-modal')">+ Add New Doctor</button>
+        <button class="btn-action" onclick="openModal('staff-modal')">+ Add New Staff</button>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon patients">👥</div>
+        <div class="kpi-details">
+          <h3>Total Registered Patients</h3>
+          <div class="value" id="kpi-patients">-</div>
+        </div>
+      </div>
+      
+      <div class="kpi-card">
+        <div class="kpi-icon doctors">👨‍⚕️</div>
+        <div class="kpi-details">
+          <h3>Total Doctors on Staff</h3>
+          <div class="value" id="kpi-doctors">-</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon revenue">💰</div>
+        <div class="kpi-details">
+          <h3>Total Hospital Revenue</h3>
+          <div class="value" id="kpi-revenue">₹ -</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tables Grid -->
+    <div class="tables-grid">
+      <!-- Doctor Directory -->
+      <div class="section-card">
+        <div class="section-header">
+          <h3>Doctor Directory</h3>
+        </div>
+        <div class="table-container">
+          <table id="doctors-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Specialization</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="3" class="empty-state">Loading doctors...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Staff Directory -->
+      <div class="section-card">
+        <div class="section-header">
+          <h3>Staff Directory</h3>
+        </div>
+        <div class="table-container">
+          <table id="staff-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Department</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="3" class="empty-state">Loading staff...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patient Lookup Table -->
+    <div class="section-card" style="margin-top: 32px;">
+      <div class="section-header" style="flex-direction: column; align-items: flex-start;">
+        <h3 style="margin-bottom: 12px;">👥 Patient Lookup</h3>
+        <input type="text" id="patient-search" placeholder="Search patients by name, phone..." class="search-input" style="margin-top: 0;" />
+      </div>
+      <div class="table-container" id="patients-container">
+        <div class="empty-state"><p>Search to find patients.</p></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Add Doctor Modal -->
+  <div class="modal-overlay" id="doctor-modal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal('doctor-modal')">✕</button>
+      <div class="modal-header"><h3>🩺 Add New Doctor</h3></div>
+      <form id="form-doctor" novalidate>
+        <div style="display: flex; gap: 12px;">
+          <div class="modal-group" style="flex: 1;"><label>First Name</label><input type="text" id="doc-first" required></div>
+          <div class="modal-group" style="flex: 1;"><label>Last Name</label><input type="text" id="doc-last" required></div>
+        </div>
+        <div class="modal-group"><label>Specialization</label><input type="text" id="doc-spec" required></div>
+        <div class="modal-group"><label>Contact Number</label><input type="text" id="doc-phone" required></div>
+        <div class="modal-group"><label>Department</label><select id="doc-dept" class="dept-select" required><option value="">Loading...</option></select></div>
+        <button type="submit" class="modal-btn" id="btn-doc-save">Save Doctor</button>
+        <div class="modal-error" id="err-doc"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Staff Modal -->
+  <div class="modal-overlay" id="staff-modal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal('staff-modal')">✕</button>
+      <div class="modal-header"><h3>👤 Add New Staff</h3></div>
+      <form id="form-staff" novalidate>
+        <div style="display: flex; gap: 12px;">
+          <div class="modal-group" style="flex: 1;"><label>First Name</label><input type="text" id="staff-first" required></div>
+          <div class="modal-group" style="flex: 1;"><label>Last Name</label><input type="text" id="staff-last" required></div>
+        </div>
+        <div class="modal-group">
+          <label>Role</label>
+          <select id="staff-role" required>
+            <option value="">Select Role...</option>
+            <option value="Admin">Admin</option>
+            <option value="Receptionist">Receptionist</option>
+            <option value="Nurse">Nurse</option>
+            <option value="Technician">Technician</option>
+          </select>
+        </div>
+        <div class="modal-group"><label>Contact Number</label><input type="text" id="staff-phone" required></div>
+        <div class="modal-group"><label>Department</label><select id="staff-dept" class="dept-select" required><option value="">Loading...</option></select></div>
+        <button type="submit" class="modal-btn" id="btn-staff-save">Save Staff</button>
+        <div class="modal-error" id="err-staff"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set User Name
+      const user = JSON.parse(localStorage.getItem('user'));
+      if(user && user.Username) {
+        document.getElementById('admin-name').textContent = user.Username;
+      }
+
+      // Logout Logic
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      });
+
+      // Load Dashboard Data
+      loadStats();
+      loadDoctors();
+      loadStaff();
+      loadDepartments();
+    });
+
+    async function loadDepartments() {
+      try {
+        const res = await fetch('/api/departments');
+        const data = await res.json();
+        const selects = document.querySelectorAll('.dept-select');
+        selects.forEach(sel => {
+          sel.innerHTML = '<option value="">Select Department...</option>';
+          data.forEach(d => {
+            sel.innerHTML += `<option value="${d.DepartmentID}">${d.DeptName}</option>`;
+          });
+        });
+      } catch(err) {
+        console.error("Failed to load departments", err);
+      }
+    }
+
+    // Modal logic
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { 
+      document.getElementById(id).classList.remove('open'); 
+      const err = document.getElementById(id === 'doctor-modal' ? 'err-doc' : 'err-staff');
+      if(err) err.style.display = 'none';
+      if(id === 'doctor-modal') document.getElementById('form-doctor').reset();
+      else document.getElementById('form-staff').reset();
+    }
+
+    document.getElementById('form-doctor').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('err-doc'); errEl.style.display = 'none';
+      const btn = document.getElementById('btn-doc-save'); btn.disabled = true; btn.textContent = 'Saving...';
+      
+      try {
+        const payload = {
+          FirstName: document.getElementById('doc-first').value,
+          LastName: document.getElementById('doc-last').value,
+          Specialization: document.getElementById('doc-spec').value,
+          ContactNumber: document.getElementById('doc-phone').value,
+          DepartmentID: document.getElementById('doc-dept').value
+        };
+        const res = await fetch('/api/admin/add-doctor', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(res.ok) {
+          alert('Doctor added successfully!');
+          closeModal('doctor-modal');
+          loadDoctors(); loadStats();
+        } else {
+          errEl.textContent = data.error || 'Failed to add doctor.'; errEl.style.display = 'block';
+        }
+      } catch(err) {
+        errEl.textContent = 'Network error.'; errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Doctor';
+      }
+    });
+
+    document.getElementById('form-staff').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('err-staff'); errEl.style.display = 'none';
+      const btn = document.getElementById('btn-staff-save'); btn.disabled = true; btn.textContent = 'Saving...';
+      
+      try {
+        const payload = {
+          FirstName: document.getElementById('staff-first').value,
+          LastName: document.getElementById('staff-last').value,
+          Role: document.getElementById('staff-role').value,
+          ContactNumber: document.getElementById('staff-phone').value,
+          DepartmentID: document.getElementById('staff-dept').value
+        };
+        const res = await fetch('/api/admin/add-staff', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(res.ok) {
+          alert('Staff added successfully!');
+          closeModal('staff-modal');
+          loadStaff();
+        } else {
+          errEl.textContent = data.error || 'Failed to add staff.'; errEl.style.display = 'block';
+        }
+      } catch(err) {
+        errEl.textContent = 'Network error.'; errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Staff';
+      }
+    });
+
+    // Patient Search function for Admin
+    function renderPatients(data) {
+      const container = document.getElementById('patients-container');
+      if (!Array.isArray(data) || data.length === 0) {
+        container.innerHTML = `<div class="empty-state"><p>No patients found.</p></div>`; return;
+      }
+      const rows = data.map(p => `
+        <tr>
+          <td><span class="badge">#${p.PatientID}</span></td>
+          <td>${p.FirstName} ${p.LastName}</td>
+          <td>${p.Phone || '—'}</td>
+        </tr>
+      `).join('');
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr><th>Patient ID</th><th>Name</th><th>Phone</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    document.getElementById('patient-search').addEventListener('keyup', async (e) => {
+      const query = e.target.value.trim();
+      const container = document.getElementById('patients-container');
+      if (!query) { container.innerHTML = `<div class="empty-state"><p>Search to find patients.</p></div>`; return; }
+      try {
+        const res = await fetch(`/api/search/patients?q=${encodeURIComponent(query)}`);
+        renderPatients(await res.json());
+      } catch (err) { container.innerHTML = `<div class="empty-state"><p>⚠️ Error: ${err.message}</p></div>`; }
+    });
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/stats');
+        const data = await res.json();
+        
+        if(res.ok) {
+          document.getElementById('kpi-patients').textContent = data.total_patients || 0;
+          document.getElementById('kpi-doctors').textContent = data.total_doctors || 0;
+          
+          // Format revenue to INR standard with commas
+          const revenue = data.total_revenue || 0;
+          document.getElementById('kpi-revenue').textContent = '₹ ' + revenue.toLocaleString('en-IN');
+        } else {
+          console.error("Stats Error:", data.error);
+        }
+      } catch(err) {
+        console.error("Failed to load stats", err);
+      }
+    }
+
+    async function loadDoctors() {
+      try {
+        const res = await fetch('/api/doctors');
+        const data = await res.json();
+        
+        const tbody = document.querySelector('#doctors-table tbody');
+        tbody.innerHTML = ''; // clear
+
+        if(!res.ok || !Array.isArray(data) || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No doctors found.</td></tr>';
+          return;
+        }
+
+        data.forEach(doc => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>#${doc.DoctorID}</strong></td>
+            <td>Dr. ${doc.FirstName} ${doc.LastName}</td>
+            <td><span class="badge">${doc.Specialization}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch(err) {
+        console.error("Failed to load doctors", err);
+      }
+    }
+
+    async function loadStaff() {
+      try {
+        const res = await fetch('/api/admin/staff-list');
+        const data = await res.json();
+        
+        const tbody = document.querySelector('#staff-table tbody');
+        tbody.innerHTML = ''; // clear
+
+        if(!res.ok || !Array.isArray(data) || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No staff members found.</td></tr>';
+          return;
+        }
+
+        data.forEach(staff => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${staff.FirstName} ${staff.LastName}</td>
+            <td><strong>${staff.Role}</strong></td>
+            <td>${staff.DeptName || 'N/A'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch(err) {
+        console.error("Failed to load staff list", err);
+      }
+    }
+  </script>
+</body>
+</html>

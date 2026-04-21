@@ -44,6 +44,10 @@ def dashboard():
 def staff_dashboard():
     return render_template('staff_dashboard.html')
 
+@app.route('/admin-dashboard')
+def admin_dashboard():
+    return render_template('admin_dashboard.html')
+
 
 # ─────────────────────────────────────────────
 # PHASE 1 — Test Route
@@ -171,6 +175,44 @@ def get_patients():
         conn.close()
 
 
+@app.route('/api/patients', methods=['POST'])
+def register_patient():
+    data = request.get_json()
+    required = ['FirstName', 'LastName', 'DOB', 'Gender', 'Phone', 'Address']
+    if not data or not all(k in data for k in required):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    try:
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO PATIENT (FirstName, LastName, DOB, Gender, Phone, Address)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (
+            data['FirstName'],
+            data['LastName'],
+            data['DOB'],
+            data['Gender'],
+            data['Phone'],
+            data['Address']
+        ))
+        conn.commit()
+        return jsonify({
+            'message': 'Patient registered successfully',
+            'PatientID': cursor.lastrowid
+        }), 201
+    except Error as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @app.route('/api/doctors', methods=['GET'])
 def get_doctors():
     conn = get_db_connection()
@@ -284,11 +326,11 @@ def get_active_admissions():
                 P.PatientID,
                 P.FirstName,
                 P.LastName,
-                R.RoomNumber,
+                A.RoomNumber,
                 A.AdmissionDate
             FROM ADMISSION A
             JOIN PATIENT P ON A.PatientID = P.PatientID
-            JOIN ROOM R ON A.RoomID = R.RoomID
+            JOIN ROOM R ON A.RoomNumber = R.RoomNumber
             WHERE A.DischargeDate IS NULL
         """
         cursor.execute(query)
@@ -324,7 +366,7 @@ def discharge_patient():
         cursor.execute("""
             SELECT A.AdmissionDate, R.DailyRate
             FROM ADMISSION A
-            JOIN ROOM R ON A.RoomID = R.RoomID
+            JOIN ROOM R ON A.RoomNumber = R.RoomNumber
             WHERE A.AdmissionID = %s
         """, (data['AdmissionID'],))
         adm_info = cursor.fetchone()
@@ -358,6 +400,287 @@ def discharge_patient():
         cursor.close()
         conn.close()
 
+
+
+# ─────────────────────────────────────────────
+# PHASE 6b — Admissions Workflow
+# ─────────────────────────────────────────────
+
+@app.route('/api/available-rooms', methods=['GET'])
+def get_available_rooms():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+    try:
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT RoomNumber, RoomType
+            FROM ROOM
+            WHERE RoomNumber NOT IN (
+                SELECT RoomNumber FROM ADMISSION WHERE DischargeDate IS NULL
+            )
+            ORDER BY RoomNumber
+        """
+        cursor.execute(query)
+        rooms = cursor.fetchall()
+        return jsonify(rooms), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/admissions', methods=['POST'])
+def admit_patient():
+    data = request.get_json()
+    required = ['PatientID', 'DoctorID', 'RoomNumber']
+    if not data or not all(k in data for k in required):
+        return jsonify({'error': 'Missing required fields: PatientID, DoctorID, RoomNumber'}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    try:
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO ADMISSION (AdmissionDate, DischargeDate, PatientID, RoomNumber, DoctorID)
+            VALUES (CURRENT_DATE(), NULL, %s, %s, %s)
+        """
+        cursor.execute(query, (
+            data['PatientID'],
+            data['RoomNumber'],
+            data['DoctorID']
+        ))
+        conn.commit()
+        return jsonify({
+            'message': 'Patient admitted successfully',
+            'AdmissionID': cursor.lastrowid
+        }), 201
+    except Error as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# PHASE 8b — Cashier / Payment Processing
+# ─────────────────────────────────────────────
+
+@app.route('/api/pending-bills', methods=['GET'])
+def get_pending_bills():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # THE FIX: Changed B.BillingID to B.BillID
+        query = """
+            SELECT B.BillID, P.FirstName, P.LastName, B.TotalAmount, B.BillingDate
+            FROM BILLING B
+            JOIN PATIENT P ON B.PatientID = P.PatientID
+            WHERE B.PaymentStatus = 'Pending'
+            ORDER BY B.BillingDate DESC
+        """
+        cursor.execute(query)
+        bills = cursor.fetchall()
+        
+        # Convert Decimal and date objects to JSON-friendly types
+        for bill in bills:
+            bill['TotalAmount'] = float(bill['TotalAmount']) if bill['TotalAmount'] else 0
+            bill['BillingDate'] = str(bill['BillingDate']) if bill['BillingDate'] else ''
+            
+        return jsonify(bills), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/pay-bill', methods=['POST'])
+def pay_bill():
+    data = request.get_json()
+    if not data or 'BillID' not in data:
+        return jsonify({'error': 'Missing BillID'}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE BILLING SET PaymentStatus = 'Paid' WHERE BillID = %s", (data['BillID'],))
+        if cursor.rowcount == 0:
+            return jsonify({'error': 'Bill not found or already paid'}), 404
+        conn.commit()
+        return jsonify({'message': 'Payment recorded successfully'}), 200
+    except Error as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# PHASE 7 — Admin Dashboard
+# ─────────────────────────────────────────────
+
+@app.route('/api/admin/stats', methods=['GET'])
+def get_admin_stats():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("SELECT COUNT(*) AS total FROM PATIENT")
+        patients_count = cursor.fetchone()['total']
+
+        cursor.execute("SELECT COUNT(*) AS total FROM DOCTOR")
+        doctors_count = cursor.fetchone()['total']
+
+        cursor.execute("SELECT SUM(TotalAmount) AS total_revenue FROM BILLING WHERE PaymentStatus = 'Paid'")
+        rev_row = cursor.fetchone()
+        revenue_sum = rev_row['total_revenue'] if rev_row['total_revenue'] else 0
+
+        return jsonify({
+            'total_patients': patients_count,
+            'total_doctors': doctors_count,
+            'total_revenue': float(revenue_sum)
+        }), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/admin/staff-list', methods=['GET'])
+def get_staff_list():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+    try:
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT S.FirstName, S.LastName, S.Role, D.DeptName 
+            FROM STAFF S 
+            LEFT JOIN DEPARTMENT D ON S.DepartmentID = D.DepartmentID
+        """
+        cursor.execute(query)
+        staff = cursor.fetchall()
+        return jsonify(staff), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/search/patients', methods=['GET'])
+def search_patients():
+    query_param = request.args.get('q', '')
+    if not query_param:
+        return jsonify([])
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        search_term = f"%{query_param}%"
+        query = """
+            SELECT PatientID, FirstName, LastName, Phone 
+            FROM PATIENT 
+            WHERE FirstName LIKE %s OR LastName LIKE %s OR Phone LIKE %s
+        """
+        cursor.execute(query, (search_term, search_term, search_term))
+        patients = cursor.fetchall()
+        return jsonify(patients), 200
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/admin/add-doctor', methods=['POST'])
+def admin_add_doctor():
+    data = request.get_json()
+    required = ['FirstName', 'LastName', 'Specialization', 'ContactNumber', 'DepartmentID']
+    if not data or not all(k in data for k in required):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    try:
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO DOCTOR (FirstName, LastName, Specialization, ContactNumber, DepartmentID)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (
+            data['FirstName'],
+            data['LastName'],
+            data['Specialization'],
+            data['ContactNumber'],
+            data['DepartmentID']
+        ))
+        conn.commit()
+        return jsonify({
+            'message': 'Doctor added successfully',
+            'DoctorID': cursor.lastrowid
+        }), 201
+    except Error as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/admin/add-staff', methods=['POST'])
+def admin_add_staff():
+    data = request.get_json()
+    required = ['FirstName', 'LastName', 'Role', 'ContactNumber', 'DepartmentID']
+    if not data or not all(k in data for k in required):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    try:
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO STAFF (FirstName, LastName, Role, ContactNumber, DepartmentID)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (
+            data['FirstName'],
+            data['LastName'],
+            data['Role'],
+            data['ContactNumber'],
+            data['DepartmentID']
+        ))
+        conn.commit()
+        return jsonify({
+            'message': 'Staff added successfully',
+            'StaffID': cursor.lastrowid
+        }), 201
+    except Error as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 # ─────────────────────────────────────────────
 # Entry Point
